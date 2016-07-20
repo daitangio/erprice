@@ -1,0 +1,14 @@
+{application, erprice, [
+	{description, "The fantastic trade price monitor"},
+	{vsn, "0.0.1"},
+	{modules, ['erprice_api','erprice_app','erprice_sup']},
+	{registered, [erprice_sup]},
+	{applications, [
+                        kernel,
+                        stdlib,
+                        cowboy,
+                        eredis]},
+        {mod, {erprice_app, []}},
+        {env, [] }
+]}.
+

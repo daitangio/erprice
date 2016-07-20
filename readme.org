@@ -1,0 +1,18 @@
+
+* Running the application
+  
+  make
+  _rel/erprice_release/bin/erprice_release.cmd console
+
+  erl -pa ebin -eval "application:start(erprice)"
+
+  See http://ninenines.eu/docs/en/cowboy/1.0/guide/getting_started/
+  for more information
+
+* Erlang kerl setup  :raspberrypi:
+You can activate this installation running the following command:
+. /opt/erl-18.3/activate
+Later on, you can leave the installation typing:
+kerl_deactivate
+
+
