@@ -1,2 +1,13 @@
 deps
 .erlang.mk
+.eunit
+deps
+*.o
+*.beam
+*.plt
+erl_crash.dump
+ebin
+_rel
+.concrete/DEV_MODE
+.rebar
+
