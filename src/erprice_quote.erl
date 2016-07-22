@@ -1,6 +1,6 @@
 -module(erprice_quote).
 -compile([{parse_transform, lager_transform},export_all]).
--export([]).
+-export([extract24_quote/1,get24price/1]).
 
 %% Provide Adapter for getting quotes
 
