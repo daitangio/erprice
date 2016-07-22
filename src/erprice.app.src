@@ -4,6 +4,9 @@
 	{modules, ['erprice_api','erprice_app','erprice_sup']},
 	{registered, [erprice_sup]},
 	{applications, [
+                        %% GG Extra stuff                        
+                        %%sasl,
+                        lager,
                         kernel,
                         stdlib,
                         cowboy,

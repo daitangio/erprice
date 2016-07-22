@@ -4,6 +4,8 @@
 -export([content_types_provided/2]).
 -export([get_html/2]).
 
+%%% Rest module to refine
+
 init(_, _Req, _Opts) ->
 	{upgrade, protocol, cowboy_rest}.
 

@@ -1,5 +1,6 @@
 -module(hello_handler).
 -behaviour(cowboy_http_handler).
+-compile([{parse_transform, lager_transform}]).
 
 -export([init/3]).
 -export([handle/2]).
@@ -9,7 +10,8 @@
 }).
 
 init(_, Req, _Opts) ->
-	{ok, Req, #state{}}.
+    lager:info("Yeppa from hello handler"),
+    {ok, Req, #state{}}.
 
 handle(Req, State=#state{}) ->
     {ok, Req2} = cowboy_req:reply(

@@ -16,3 +16,13 @@ Later on, you can leave the installation typing:
 kerl_deactivate
 
 
+* TODO where to put app config?
+%%% NON VA QUESTO::::
+{lager, [
+  {log_root, "./"},
+  {handlers, [
+    {lager_console_backend, info},
+    {lager_file_backend, [{file, "erprice-error.log"}, {level, error}]},
+    {lager_file_backend, [{file, "erprice-console.log"}, {level, info}]}
+  ]}
+]}.
