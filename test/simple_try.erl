@@ -1,5 +1,6 @@
 -module(simple_try).
--compile([{parse_transform, lager_transform},export_all]).
+%% -compile([{parse_transform, lager_transform},export_all]).
+-compile([export_all]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -10,26 +11,33 @@
 
 %% Must be first to  activate all the support servers
 start_test()->
-    lager:start(),
-    inets:start(),
+    %% manually start some application for unit testing
+    %% I think it is wrong, but works...
+    application:start(inets),
+    application:start(eredis),
+    %% Run sasl for last...
+    application:start(sasl),
     ok.
 
 stop()->
-    inets:stop(),
+    %%inets:stop(),
     ok.
 
 stupid_test()->
     ?assertEqual(1,1).   
 
-lager_test()->    
-    lager:info("Testing info"),
-    ?assertEqual(1,1).
+log_test() ->
+    error_logger:info_msg("Simple SASL Info log ~p~n", [ yeppa ]).  
+
+%% lager_test()->    
+%%     lager:info("Testing info"),
+%%     ?assertEqual(1,1).
 
 simple_url_request_disab()->    
-    {ok, {{Version, 200, _ReasonPhrase}, Headers, Body}} =
+    {ok, {{Version, 200, _ReasonPhrase}, Headers, _Body}} =
         httpc:request(get, {"http://gioorgi.com", []}, [], []),
-    lager:info("Version and Headers: ~p /// ~p ",[Version,Headers]),
-    lager:info("Request Body:  ~p",[Body]).
+    ?debugVal(Version),
+    ?debugVal(Headers).
 
 %% Es di url di quotazione
 %% http://www.milanofinanza.it/quotazioni/dettaglio/snam-2ae0363
@@ -74,16 +82,6 @@ extract24_nsy2_test()->
 %% http://finanza-mercati.ilsole24ore.com/quotazioni.php?QUOTE=!ORCL.NY
 
 
-simple_url_parse_disab()->
-    {ok, {{_Version, 200, _ReasonPhrase}, Headers, Body}} =
-        httpc:request(get, {"http://finanza-mercati.ilsole24ore.com/quotazioni.php?QUOTE=!SRG.MI", []}, [], []),
-    lager:info("Headers: ~p",[Headers]),
-    lager:info("Request Body:  ~p",[Body]),
-    case re:run(Body,"databox.*class=\"data") of
-        {match,Captured} -> lager:info("Got:  ~p",[Captured]);
-        nomatch -> ?assertEqual(1,2)
-    end,
-    ok.
         
 
 simple_api24_test()->
@@ -92,9 +90,17 @@ simple_api24_test()->
     ?debugVal(Quote).
 
 simple_api24_orcl_test()->
-    Quote=erprice_quote:get24price("ORCL.NY"),
-    ?assertEqual(true,is_float(Quote)),
-    ?debugVal(Quote).
+    ?debugTime("Oracle from sole24 timing test",erprice_quote:get24price("ORCL.NY")),
+    ok.
+
+
+%% For yahoo api see http://www.jarloo.com/yahoo_finance/
+%% "http://download.finance.yahoo.com/d/quotes.csv?s=ORCL&f=nab"
+
+simple_yahooApi_test()->
+    ?debugTime("Yahoo access time:",
+               erprice_quote:getYahooPrice("ORCL")),
+    ok.
 
 
 

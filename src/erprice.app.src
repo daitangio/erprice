@@ -5,12 +5,10 @@
 	{registered, [erprice_sup]},
 	{applications, [
                         %% GG Extra stuff                        
-                        %%sasl,
+                        sasl,
                         inets,
-                        lager,
                         kernel,
                         stdlib,
-                        cowboy,
                         eredis]},
         {mod, {erprice_app, []}},
         {env, [] }

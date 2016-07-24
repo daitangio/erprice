@@ -3,8 +3,8 @@ PROJECT_DESCRIPTION = New project
 PROJECT_VERSION = 0.0.1
 
 
-# Dependency tracking
-DEPS= cowboy eredis lager
+# Dependency tracking: removed cowboy and lager
+DEPS= eredis 
 
 # Eredis commit of Sep 10 2015: proper compilation with OTP >= 17.0
 dep_eredis_commit=bf12ecb30253c84a2331f4f0d93fd68856fcb9f4
