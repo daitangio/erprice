@@ -1,5 +1,5 @@
 -module(erprice_quote).
-%% Native ask for hipe
+%% Native ask for hipe?
 -compile([native,export_all]).
 -behaviour(gen_server).
 %% gen_server callbacks
