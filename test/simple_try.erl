@@ -29,19 +29,38 @@ stupid_test()->
 log_test() ->
     error_logger:info_msg("Simple SASL Info log ~p~n", [ yeppa ]).  
 
-simple_watch() ->
-    {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
-    %% Force a price drop
-    ?debugVal("Gen Server:"),
-    ?debugVal(GenServer),
-    %% Oracle call is fast...
-    erprice_quote:watch(GenServer,"ORCL","NY",lessthen, 2000),
-    erprice_quote:watch(GenServer,"SGR","MI",lessthen, 2000),
-    timer:sleep(1500).
+%% simple_watch() ->
+%%     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
+%%     %% Force a price drop    
+%%     ?debugVal(GenServer),
+%%     %% Oracle call is fast...
+%%     erprice_quote:watch(GenServer,"ORCL","NY",lessthen, 2000),
+%%     erprice_quote:watch(GenServer,"SGR","MI",lessthen, 2000),
+%%     timer:sleep(1500).
 
 watch_test_() ->
     % 150 sec timeout
-    {timeout, 150, fun () -> simple_watch() end }.
+    {timeout, 150, fun () -> price_drop_percent_scan() end }.
+
+price_drop_percent_scan()->
+    {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
+    erprice_quote:dropPercentScan(GenServer,0.05, [ 
+                                      {"ORCL","NY"},
+                                      {"SGR","MI"},
+                                      {"TRN","MI"},
+                                      {"BMPS","MI"},
+                                      {"ENEL","MI"}
+                                    ]),
+    timer:sleep(65000).
+price_drop_scan() ->
+    ?debugVal("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Scanner"),
+    {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
+    erprice_quote:dropScan(GenServer, [ {"ORCL","NY",43},
+                                        {"SGR","MI",7.5},
+                                        {"TRN","MI",4.5},
+                                        {"BMPS","MI",0.1}]),
+    
+    timer:sleep(65000).
 
 
 %% lager_test()->    
@@ -96,15 +115,14 @@ extract24_nsy2_test()->
 %% Oracle parsing test
 %% http://finanza-mercati.ilsole24ore.com/quotazioni.php?QUOTE=!ORCL.NY
 
-
         
 
-simple_api24_test()->
+simple_api24_disab()->
     Quote=erprice_quote:get24price("SGR.MI"),
     ?assertEqual(true,is_float(Quote)),
     ?debugVal(Quote).
 
-simple_api24_orcl_test()->
+simple_api24_orcl_disab()->
     ?debugTime("Oracle from sole24 timing test",erprice_quote:get24price("ORCL.NY")),
     ok.
 
@@ -112,7 +130,7 @@ simple_api24_orcl_test()->
 %% For yahoo api see http://www.jarloo.com/yahoo_finance/
 %% "http://download.finance.yahoo.com/d/quotes.csv?s=ORCL&f=nab"
 
-simple_yahooApi_test()->
+simple_yahooApi_disab()->
     ?debugTime("Yahoo access time:",
                erprice_quote:getYahooPrice("ORCL")),
     ok.

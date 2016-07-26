@@ -10,14 +10,14 @@
 -export([extract24_quote/1,get24price/1]).
 
 %% @doc Gen server master watcher. 
-%% 
+%% TODO Custom error log http://erlang.org/documentation/doc-4.9.1/doc/design_principles/error_logging.html
 %% 
 
 %% @doc how much parallel connections for getting quote?
 -define(MAX_CONNECTIONS,2).
 
 %% @doc delay between two consecutive requests on the same quote resource
--define(COLD_DOWN_MS,60000).
+-define(COLD_DOWN_MS,30000).
 
 
 %%% BASIC API
@@ -26,22 +26,46 @@ watch(GenServer, Company, Market,lessthen,Quote)->
     NewPid=spawn(?MODULE,watchDrop,[Company,Market,Quote,GenServer]),
     NewPid.
 
+%% i.e. dropPercentScan(Pid,0.1, [ {"BMPS","MI"}])
+dropPercentScan(GenServer, Percent, [ Tick | Rest] ) ->
+    { Company, Market } = Tick,
+    %% Extract the quote
+    CurrentQuote =  getQuote(Company,Market),
+    DropLimit= CurrentQuote*(1-Percent),
+    watch(GenServer,Company, Market,lessthen,DropLimit),
+    dropPercentScan(GenServer,Percent,Rest);
+dropPercentScan(GenServer,_Percent,[])->
+    GenServer.
 
+
+
+%% Scan a set of stuff for the requested drop
+dropScan( GenServer, [Tick | Rest ] ) ->
+    { Company, Market,Quote } = Tick,
+    watch(GenServer,Company, Market,lessthen,Quote),
+    dropScan(GenServer, Rest);
+dropScan(GenServer,[]) ->
+    GenServer.
+
+
+%% @doc Spawned by watch
 watchDrop(Company,Market,Quote,GenServer)->
-    error_logger:info_msg("Monitoring lessthen"),
-    CurrentQuote = case Market of
-        "MI" ->   get24price(string:concat(string:concat(Company,"."),Market)) ;
-        _Other -> getYahooPrice(Company) 
-    end,
-    error_logger:info_msg("Processing quote..."),
+    %% error_logger:info_msg("Monitoring lessthen ~p",Company),
+    CurrentQuote =  getQuote(Company,Market),
+    error_logger:info_msg("Comparing ~p ~p < ~p", [Company,CurrentQuote,Quote]),
     if CurrentQuote < Quote  -> 
-            error_logger:info_msg("Trigger!"),
+            %% error_logger:info_msg("Trigger!"),
             gen_server:cast(GenServer, {self(),drop,Company,CurrentQuote});           
-       true -> error_logger:info_msg("Bad luck"),
-               %% Sleep and reschedule
-               timer:sleep(?COLD_DOWN_MS),               
+       true -> %% error_logger:info_msg(" Retrying... "),
+               %% Sleep and reschedule.
+               %% To avoid detection, we add also some random time inside it.
+               
+               timer:sleep( trunc(?COLD_DOWN_MS/2 + trunc(rand:uniform()*(?COLD_DOWN_MS/2))) ),               
                watchDrop(Company,Market,Quote,GenServer)
     end.
+
+
+    
 
 %%% GEN SERVER Implementation
 
@@ -58,7 +82,7 @@ handle_call(quote,_From, State) ->
 
 
 handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
-    error_logger:info_msg("Drop on ~p ~p",[Company,CurrentQuote]),
+    error_logger:info_msg("NOTIFY Drop on ~p ~p",[Company,CurrentQuote]),
     %% TODO: implement some notification action
     %% Also if the trigger must be rescheduled provide additional actions
     {noreply,State}.
@@ -75,6 +99,18 @@ terminate(normal,_State)->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+%%%% Low level web service quote services
+
+getQuote(Company,Market)->
+    CurrentQuote = 
+        case Market of
+            "NY"  -> getYahooPrice(Company) ;
+            _Other -> get24price(string:concat(string:concat(Company,"."),Market))                        
+        end,
+    CurrentQuote.
+
+
 
 %% Example: http://finanza-mercati.ilsole24ore.com/quotazioni.php?QUOTE=!ORCL.NY
 %% The page is fat but the parsing is quite easy
@@ -95,7 +131,7 @@ extract24_quote(String)->
 get24price(Ticker) ->
     %% Concat the ticker
     CallUrl =string:concat("http://finanza-mercati.ilsole24ore.com/quotazioni.php?QUOTE=!",Ticker),
-    error_logger:info_msg("Calling ~p",[CallUrl]),
+    %%error_logger:info_msg("Calling ~p",[CallUrl]),
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} =
         httpc:request(get, {CallUrl, []}, [], []),
     FloatQuote=extract24_quote(Body),
@@ -104,7 +140,7 @@ get24price(Ticker) ->
 getYahooPrice(Ticker) ->
     %% nab= name, ask, bid.
     CallUrl =string:concat("http://download.finance.yahoo.com/d/quotes.csv?f=a&s=",Ticker),
-    error_logger:info_msg("Calling ~p",[CallUrl]),
+    %%error_logger:info_msg("Calling ~p",[CallUrl]),
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} =
         httpc:request(get, {CallUrl, []}, [], []),
     { Quote, _Rest} =string:to_float(Body),

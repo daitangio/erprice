@@ -6,6 +6,7 @@
 	{applications, [
                         %% GG Extra stuff                        
                         sasl,
+                        observer,
                         inets,
                         kernel,
                         stdlib,
