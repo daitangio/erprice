@@ -21,7 +21,11 @@ EUNIT_OPTS = verbose
 
 include erlang.mk
 
-GG_ERLANG_OPTS=-sname cli -setCookie ErZaukerCluster -pa deps/*/ebin/ -pa ebin/ +K true -smp enable  ${ERL_ARGS}
+GG_ERLANG_OPTS=-sname cli -setCookie ErPriceCluster -pa deps/*/ebin/ -pa ebin/ +K true -smp enable  ${ERL_ARGS}
 # GG Specific task for windows:
 runwin:	
 	_rel/erprice_release/bin/erprice_release.cmd console
+
+# Werl with full observer and guys
+jj: app
+	werl ${GG_ERLANG_OPTS}

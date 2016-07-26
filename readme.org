@@ -2,12 +2,12 @@
 * Simple drop startegy
 #+BEGIN_SRC erlang
     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
-    erprice_quote:dropPercentScan(GenServer,0.05, [ 
+    erprice_quote:dropPercentScan(GenServer,0.001, [ 
                                       {"ORCL","NY"},
                                       {"SGR","MI"},
                                       {"TRN","MI"},
                                       {"BMPS","MI"},
-                                      {"ENEL","MI"}
+                                      {"ENEL","MI"}, {"AAPL","NY"}
                                     ]).
 #+END_SRC
 * Running the application

@@ -14,10 +14,10 @@
 %% 
 
 %% @doc how much parallel connections for getting quote?
--define(MAX_CONNECTIONS,2).
+%% -define(MAX_CONNECTIONS,2).
 
 %% @doc delay between two consecutive requests on the same quote resource
--define(COLD_DOWN_MS,30000).
+-define(COLD_DOWN_MS,70000).
 
 
 %%% BASIC API
@@ -54,12 +54,11 @@ watchDrop(Company,Market,Quote,GenServer)->
     CurrentQuote =  getQuote(Company,Market),
     error_logger:info_msg("Comparing ~p ~p < ~p", [Company,CurrentQuote,Quote]),
     if CurrentQuote < Quote  -> 
-            %% error_logger:info_msg("Trigger!"),
+            error_logger:info_msg("Trigger Comparing ~p ~p < ~p", [Company,CurrentQuote,Quote]),
             gen_server:cast(GenServer, {self(),drop,Company,CurrentQuote});           
        true -> %% error_logger:info_msg(" Retrying... "),
                %% Sleep and reschedule.
-               %% To avoid detection, we add also some random time inside it.
-               
+               %% To avoid detection, we add also some random time inside it.              
                timer:sleep( trunc(?COLD_DOWN_MS/2 + trunc(rand:uniform()*(?COLD_DOWN_MS/2))) ),               
                watchDrop(Company,Market,Quote,GenServer)
     end.
@@ -68,6 +67,8 @@ watchDrop(Company,Market,Quote,GenServer)->
     
 
 %%% GEN SERVER Implementation
+
+
 
 start_link()->
     {ok, GenServer}=gen_server:start_link({local, ?MODULE }, ?MODULE, [], []),
@@ -120,6 +121,16 @@ extract24_quote(String)->
     [ _Orig |  Rest ]=re:replace(String,"databox.*td class=\"data.*\" style=\"color:#FFFFFF\">([0-9.]*)</td>.*","\\1"),
     [ Match | _ ] = Rest,    
     %% Ok, this route is stupid but works
+    %% GG: Sometimes you can get a badmatch (for instance for a error)
+%% Error in process <0.78.0> on node 'erprice@127.0.0.1' with exit value:
+%% {{badmatch,33},
+%%  [{erprice_quote,extract24_quote,1,
+%%                  [{file,"c:/giorgi/code/erprice/src/erprice_quote.erl"},
+%%                   {line,123}]},
+%%   {erprice_quote,watchDrop,4,
+%%                  [{file,"c:/giorgi/code/erprice/src/erprice_quote.erl"},
+%%                   {line,54}]}]}
+
     [ Az ] = Match,
     Quote=list_to_float(bitstring_to_list(Az)),
     Quote.

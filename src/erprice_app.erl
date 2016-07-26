@@ -2,7 +2,7 @@
 -author("giovanni.giorgi@gioorgi.com").
 -behaviour(application).
 
--export([start/2]).
+-export([start/2, s/0]).
 -export([stop/1]).
 -export([banner/0]).
 
@@ -16,8 +16,28 @@ start(_Type, _Args) ->
     %%     [{env, [{dispatch, Dispatch}]}]
     %% ),
     erprice_quote:start_link(),
-
     erprice_sup:start_link().
+
+%% @doc convenience method to start basic services
+s() ->    
+    application:start(inets),
+    application:start(eredis),    
+    application:start(sasl),
+    application:start(erprice),
+    observer:start(),
+    %% erprice_quote:start_link(),
+    {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
+    erprice_quote:dropPercentScan(GenServer,0.001, 
+                                  [ 
+                                    {"ORCL","NY"},
+                                    {"SGR","MI"},
+                                    {"TRN","MI"},
+                                    {"BMPS","MI"},
+                                    {"ENEL","MI"}, 
+                                    {"AAPL","NY"}
+                                  ]),
+    GenServer.
+
 
 banner()->
     io:format("~n---------------------------------------------------"),
