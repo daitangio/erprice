@@ -1,6 +1,7 @@
 -module(erprice_quote).
-%% Native ask for hipe?
--compile([native,export_all]).
+%% Native ask for hipe? Win does not support it
+%% -compile([ native,export_all]).
+-compile([ export_all]).
 -behaviour(gen_server).
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, code_change/3,terminate/2,handle_info/2]).
@@ -8,8 +9,8 @@
 %% For eunit:
 -export([extract24_quote/1,get24price/1]).
 
-%% @doc Provide Adapter for getting quotes
-%%??? RESEE Responsability: simple market scheduler
+%% @doc Gen server master watcher. 
+%% 
 %% 
 
 %% @doc how much parallel connections for getting quote?
@@ -20,48 +21,47 @@
 
 
 %%% BASIC API
-%% @doc Generate a watchdoc process which will look for the quote at regular intervals.
-%% Example usage:
-%% erprice_quote:watch("ENEL","MI",lessthen,40).
-%% Calling process will receive a 
-%% {notify,Company,Quote}
-%% when threshold is reached
-watch(Company, Market,lessthen,Quote)->
-    {ok,Pid} = gen_server:start_link(?MODULE,[{Company,Market}],[]),
-    gen_server:cast(Pid, {self(),lessthen,Quote}),
-    Pid.
+%% @doc Spawn a child which will notify the price drop to the Gen Server
+watch(GenServer, Company, Market,lessthen,Quote)->
+    NewPid=spawn(?MODULE,watchDrop,[Company,Market,Quote,GenServer]),
+    NewPid.
 
+
+watchDrop(Company,Market,Quote,GenServer)->
+    error_logger:info_msg("Monitoring lessthen"),
+    CurrentQuote = case Market of
+        "MI" ->   get24price(string:concat(string:concat(Company,"."),Market)) ;
+        _Other -> getYahooPrice(Company) 
+    end,
+    error_logger:info_msg("Processing quote..."),
+    if CurrentQuote < Quote  -> 
+            error_logger:info_msg("Trigger!"),
+            gen_server:cast(GenServer, {self(),drop,Company,CurrentQuote});           
+       true -> error_logger:info_msg("Bad luck"),
+               %% Sleep and reschedule
+               timer:sleep(?COLD_DOWN_MS),               
+               watchDrop(Company,Market,Quote,GenServer)
+    end.
 
 %%% GEN SERVER Implementation
 
 start_link()->
-    R=gen_server:start_link({local, ?MODULE }, ?MODULE, [], []),
-    %%sys:trace(?MODULE,true),    
-    R.
+    {ok, GenServer}=gen_server:start_link({local, ?MODULE }, ?MODULE, [], []),
+    GenServer.
 
-init([{Company,Market}]) ->
-    error_logger:info_msg("Configured  ~p.~p ",[Company, Market]),
-    %% See http://erlang.org/doc/reference_manual/expressions.html#id82225
-    State= { Company, Market},
+init(_WhateverYouLike) ->
+    State=[],
     {ok,State}.
 
 handle_call(quote,_From, State) ->
     {reply,use_cast, State}.
 
-handle_cast({CallerPid, lessthen, Quote},State)->
-    error_logger:info_msg("Monitoring lessthen"),
-    { Company, Market } = State,
-    CurrentQuote = case Market of
-        "MI" ->   get24price(string:concat(string:concat(Company,"."),Market)) ;
-        _Other -> getYahooPrice(Company) 
-    end,
-    if CurrentQuote < Quote  -> 
-            CallerPid ! { notify, Company, Quote},
-            error_logger:info_msg("Trigger!");
-       true -> error_logger:info_msg("Bad luck")
-    end,
-    %% Reschedule to myself after a timeout... only if bad luck happens!
-    {noreply,State, 10000}.
+
+handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
+    error_logger:info_msg("Drop on ~p ~p",[Company,CurrentQuote]),
+    %% TODO: implement some notification action
+    %% Also if the trigger must be rescheduled provide additional actions
+    {noreply,State}.
 
 %% handle_info({'EXIT', _Pid, _Reason}, State) ->
 %%     %% ..code to handle exits here..
