@@ -30,4 +30,4 @@ runwin:
 
 # Werl with full observer and guys
 demo: app
-	werl ${GG_ERLANG_OPTS} -eval 'erprice_app:s()'
+	erl ${GG_ERLANG_OPTS} -eval 'erprice_app:s()'

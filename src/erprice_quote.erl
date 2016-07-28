@@ -1,7 +1,7 @@
 -module(erprice_quote).
 %% Native ask for hipe? Win does not support it
 %% -compile([ native,export_all]).
--compile([ export_all]).
+-compile([ {hipe, [to_llvm]}, export_all]).
 -behaviour(gen_server).
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, code_change/3,terminate/2,handle_info/2]).
@@ -80,14 +80,18 @@ start_link()->
     GenServer.
 
 init(_WhateverYouLike) ->
-    State=#{},
+    State=#{ monitorCount => 0 },
     {ok,State}.
 
 handle_call({Company, Market,lessthen,Quote},_From, State) ->    
-    %%error_logger:info_msg("Spawnning sub-process for ~p drop",[Company]),
     NewPid=spawn_monitor(?MODULE,watchDrop,[Company,Market,Quote,self()]),
     %% TODO Store pid infos...    
-    {reply,{spawned,NewPid}, State}.
+    #{ monitorCount := CurrentCount } = State,
+    NewCount = CurrentCount+1,
+    UpdatedState = State#{ monitorCount := NewCount },
+    NewState=maps:put(Company,NewPid,UpdatedState),
+    error_logger:info_msg("Spawned sub-process for ~p drop Current Count: ~p NewState ~p ",[Company,NewCount,NewState]),
+    {reply,{spawned,NewPid}, NewState}.
 
 
 handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
@@ -100,15 +104,29 @@ handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
 %%     %% ..code to handle exits here..
 %%     {noreply, State}.
 
-%% Child monitored process will send
-%% {'DOWN',#Ref<0.0.3.219>,process,<0.97.0>,killed}
-%% once the guy has sent the notification
+%% Child monitored process will send a DOWN message as normal state
+%%           {'DOWN',#Ref<0.0.4.149>,process,<0.83.0>,normal}
+%% handle_info( {'DOWN',_Ref,_ProcessTag,Pid,_StatusHopeNormal},State)->
+%%     #{ monitorCount := CurrentCount } = State,
+%%     DecCount = CurrentCount-1,
+%%     NewState = State#{ monitorCount := DecCount },
+%%     error_logger:error_msg("~n  Just died: ~p Live Monitor so far:  ~p New State: ~p ~n",[Pid,DecCount,NewState]),
+%%     {noreplay,State};
 handle_info(UnknownMessage,State) ->
-    error_logger:error_msg("~n UNKNOWN MESSAGE: ~p",[UnknownMessage]),
-    {noreply, State}.
+    %%error_logger:error_msg("~n UNKNOWN MESSAGE: ~p",[UnknownMessage]),
+    %% Try magic match:
+    {'DOWN',_REF,process,Pid,normal} = UnknownMessage,
+    #{ monitorCount := CurrentCount } = State,
+    DecCount = CurrentCount-1,
+    NewState = State#{ monitorCount := DecCount },
+    error_logger:info_msg("Aah: Child just shutdown: ~p New State: ~p ~n  ",[Pid, NewState]),
+    {noreply, NewState}.
 
-terminate(normal,_State)->
+terminate(Reason,State)->
+    error_logger:error_msg("~n Terminate Abnormal request. Reason:~p Status: ~p",[Reason,State]),
     ok.
+%% terminate(normal,_State)->
+%%     ok.
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.

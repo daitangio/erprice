@@ -29,6 +29,23 @@ stupid_test()->
 log_test() ->
     error_logger:info_msg("Simple SASL Info log ~p~n", [ yeppa ]).  
 
+map_learn_test() ->
+    S= #{ count => 0},
+    ?debugVal(S),
+    #{ count:=PrevCount }=S,
+    NewCount=PrevCount+1,
+    %% Update existing value:
+    S2=S#{ count := NewCount},
+    ?debugVal(S2).
+
+integration_fast_test()->
+    {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
+    %% Trick: a negative value will generate a immediate notification:
+    erprice_quote:dropPercentScan(GenServer,-0.05, 
+                                  [  {"AAPL","NY"},
+                                     {"ORCL","NY"}]),
+    timer:sleep(900).
+      
 %% simple_watch() ->
 %%     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
 %%     %% Force a price drop    

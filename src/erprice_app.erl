@@ -35,7 +35,7 @@ s() ->
     observer:start(),
     %% erprice_quote:start_link(),
     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
-    erprice_quote:dropPercentScan(GenServer,0.01, 
+    erprice_quote:dropPercentScan(GenServer,0.05, 
                                   [ 
                                     {"ORCL","NY"},
                                     {"SGR","MI"},
