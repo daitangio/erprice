@@ -4,7 +4,8 @@
 	{modules, ['erprice_quote','erprice_app','erprice_sup']},
 	{registered, [erprice_sup]},
 	{applications, [
-                        %% GG Extra stuff                        
+                        %% GG Extra stuff
+                        %%% gen_smtp,
                         sasl,
                         inets,
                         kernel,

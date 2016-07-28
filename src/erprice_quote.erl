@@ -16,14 +16,15 @@
 %% @doc how much parallel connections for getting quote?
 %% -define(MAX_CONNECTIONS,2).
 
-%% @doc delay between two consecutive requests on the same quote resource
--define(COLD_DOWN_MS,70000).
-
+%% @doc Mimimal delay between two requests
+-define(MIN_COLD_DOWN_SECONDS,120).
+%% Random delay range
+-define(COLD_DOWN_RANDOM_SECONDS,60).
 
 %%% BASIC API
 %% @doc Spawn a child which will notify the price drop to the Gen Server
 watch(GenServer, Company, Market,lessthen,Quote)->
-    NewPid=spawn(?MODULE,watchDrop,[Company,Market,Quote,GenServer]),
+    {spawned, NewPid}=gen_server:call(GenServer,{Company, Market,lessthen,Quote}),
     NewPid.
 
 %% i.e. dropPercentScan(Pid,0.1, [ {"BMPS","MI"}])
@@ -38,7 +39,6 @@ dropPercentScan(GenServer,_Percent,[])->
     GenServer.
 
 
-
 %% Scan a set of stuff for the requested drop
 dropScan( GenServer, [Tick | Rest ] ) ->
     { Company, Market,Quote } = Tick,
@@ -48,19 +48,24 @@ dropScan(GenServer,[]) ->
     GenServer.
 
 
-%% @doc Spawned by watch
+%%% PRIVATE SUPPORT
+%% @doc Spawned by gen_server
 watchDrop(Company,Market,Quote,GenServer)->
     %% error_logger:info_msg("Monitoring lessthen ~p",Company),
     CurrentQuote =  getQuote(Company,Market),
-    error_logger:info_msg("Comparing ~p ~p < ~p", [Company,CurrentQuote,Quote]),
+    %% error_logger:info_msg("Comparing ~p ~p < ~p", [Company,CurrentQuote,Quote]),
     if CurrentQuote < Quote  -> 
             error_logger:info_msg("Trigger Comparing ~p ~p < ~p", [Company,CurrentQuote,Quote]),
             gen_server:cast(GenServer, {self(),drop,Company,CurrentQuote});           
        true -> %% error_logger:info_msg(" Retrying... "),
-               %% Sleep and reschedule.
-               %% To avoid detection, we add also some random time inside it.              
-               timer:sleep( trunc(?COLD_DOWN_MS/2 + trunc(rand:uniform()*(?COLD_DOWN_MS/2))) ),               
-               watchDrop(Company,Market,Quote,GenServer)
+            %% Sleep and reschedule.
+            %% To avoid detection, we add also some random time inside it.
+            SleepTimeMs=1000*(?MIN_COLD_DOWN_SECONDS) + 
+                %% Random 10sec distrib
+                +1000+((trunc(rand:uniform()* ?COLD_DOWN_RANDOM_SECONDS)) *1000),
+            %% error_logger:info_msg(" Retrying...~p into ~p   ~p < ~p ", [ Company,SleepTimeMs,CurrentQuote,Quote ]),
+            timer:sleep( SleepTimeMs  ) ,               
+            watchDrop(Company,Market,Quote,GenServer)
     end.
 
 
@@ -75,15 +80,18 @@ start_link()->
     GenServer.
 
 init(_WhateverYouLike) ->
-    State=[],
+    State=#{},
     {ok,State}.
 
-handle_call(quote,_From, State) ->
-    {reply,use_cast, State}.
+handle_call({Company, Market,lessthen,Quote},_From, State) ->    
+    %%error_logger:info_msg("Spawnning sub-process for ~p drop",[Company]),
+    NewPid=spawn_monitor(?MODULE,watchDrop,[Company,Market,Quote,self()]),
+    %% TODO Store pid infos...    
+    {reply,{spawned,NewPid}, State}.
 
 
 handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
-    error_logger:info_msg("NOTIFY Drop on ~p ~p",[Company,CurrentQuote]),
+    error_logger:info_msg("~n NOTIFY Drop on ~p ~p",[Company,CurrentQuote]),
     %% TODO: implement some notification action
     %% Also if the trigger must be rescheduled provide additional actions
     {noreply,State}.
@@ -92,7 +100,11 @@ handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
 %%     %% ..code to handle exits here..
 %%     {noreply, State}.
 
-handle_info(_UnknownMessage,State) ->
+%% Child monitored process will send
+%% {'DOWN',#Ref<0.0.3.219>,process,<0.97.0>,killed}
+%% once the guy has sent the notification
+handle_info(UnknownMessage,State) ->
+    error_logger:error_msg("~n UNKNOWN MESSAGE: ~p",[UnknownMessage]),
     {noreply, State}.
 
 terminate(normal,_State)->
@@ -106,6 +118,7 @@ code_change(_OldVsn, State, _Extra) ->
 getQuote(Company,Market)->
     CurrentQuote = 
         case Market of
+            ""    -> getYahooPrice(Company) ; %% shortcut 
             "NY"  -> getYahooPrice(Company) ;
             _Other -> get24price(string:concat(string:concat(Company,"."),Market))                        
         end,

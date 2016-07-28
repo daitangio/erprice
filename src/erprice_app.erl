@@ -15,26 +15,37 @@ start(_Type, _Args) ->
     %% {ok, _Pid} = cowboy:start_http(my_http_listener, 100, [{port, 8080}],
     %%     [{env, [{dispatch, Dispatch}]}]
     %% ),
-    erprice_quote:start_link(),
+    %% erprice_quote:start_link(),
     erprice_sup:start_link().
 
 %% @doc convenience method to start basic services
 s() ->    
+    %% SSL needed by gen_smtp   
     application:start(inets),
     application:start(eredis),    
-    application:start(sasl),
+    application:start(sasl),    
+    %% Resee: tree for gen_smtp
+    %% application:start(crypto),
+    %% application:start(asn1),   
+    %% application:start(public_key),
+    %% application:start(ssl),
+    %% application:start(gen_smtp),
+    %%% Go
     application:start(erprice),
     observer:start(),
     %% erprice_quote:start_link(),
     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
-    erprice_quote:dropPercentScan(GenServer,0.001, 
+    erprice_quote:dropPercentScan(GenServer,0.01, 
                                   [ 
                                     {"ORCL","NY"},
                                     {"SGR","MI"},
                                     {"TRN","MI"},
                                     {"BMPS","MI"},
                                     {"ENEL","MI"}, 
-                                    {"AAPL","NY"}
+                                    {"AAPL","NY"},
+                                    {"RHT","NY"},
+                                    {"ADBE","NY"}, %% Adobe, Nasdaq
+                                    {"AMZN","NY"}
                                   ]),
     GenServer.
 

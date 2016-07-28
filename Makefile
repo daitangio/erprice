@@ -4,7 +4,7 @@ PROJECT_VERSION = 0.0.1
 
 
 # Dependency tracking: removed cowboy and lager
-DEPS= eredis 
+DEPS= eredis gen_smtp
 
 # Eredis commit of Sep 10 2015: proper compilation with OTP >= 17.0
 dep_eredis_commit=bf12ecb30253c84a2331f4f0d93fd68856fcb9f4
@@ -13,6 +13,8 @@ dep_cowboy_commit=1.0.4
 
 dep_lager_commit=3.2.1
 
+# https://github.com/Vagabond/gen_smtp
+dep_gen_smtp_commit=0.11.0
 
 #### Unit testing
 EUNIT_OPTS = verbose
@@ -27,5 +29,5 @@ runwin:
 	_rel/erprice_release/bin/erprice_release.cmd console
 
 # Werl with full observer and guys
-jj: app
-	werl ${GG_ERLANG_OPTS}
+demo: app
+	werl ${GG_ERLANG_OPTS} -eval 'erprice_app:s()'

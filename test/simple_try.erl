@@ -38,29 +38,29 @@ log_test() ->
 %%     erprice_quote:watch(GenServer,"SGR","MI",lessthen, 2000),
 %%     timer:sleep(1500).
 
-watch_test_() ->
-    % 150 sec timeout
-    {timeout, 150, fun () -> price_drop_percent_scan() end }.
+%% watch_test_() ->
+%%     % 150 sec timeout
+%%     {timeout, 150, fun () -> price_drop_percent_scan() end }.
 
-price_drop_percent_scan()->
-    {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
-    erprice_quote:dropPercentScan(GenServer,0.05, [ 
-                                      {"ORCL","NY"},
-                                      {"SGR","MI"},
-                                      {"TRN","MI"},
-                                      {"BMPS","MI"},
-                                      {"ENEL","MI"}
-                                    ]),
-    timer:sleep(65000).
-price_drop_scan() ->
-    ?debugVal("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Scanner"),
-    {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
-    erprice_quote:dropScan(GenServer, [ {"ORCL","NY",43},
-                                        {"SGR","MI",7.5},
-                                        {"TRN","MI",4.5},
-                                        {"BMPS","MI",0.1}]),
+%% price_drop_percent_scan()->
+%%     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
+%%     erprice_quote:dropPercentScan(GenServer,0.05, [ 
+%%                                       {"ORCL","NY"},
+%%                                       {"SGR","MI"},
+%%                                       {"TRN","MI"},
+%%                                       {"BMPS","MI"},
+%%                                       {"ENEL","MI"}
+%%                                     ]),
+%%     timer:sleep(65000).
+%% price_drop_scan() ->
+%%     ?debugVal("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Scanner"),
+%%     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
+%%     erprice_quote:dropScan(GenServer, [ {"ORCL","NY",43},
+%%                                         {"SGR","MI",7.5},
+%%                                         {"TRN","MI",4.5},
+%%                                         {"BMPS","MI",0.1}]),
     
-    timer:sleep(65000).
+%%     timer:sleep(65000).
 
 
 %% lager_test()->    
