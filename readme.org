@@ -37,3 +37,9 @@ kerl_deactivate
     {lager_file_backend, [{file, "erprice-console.log"}, {level, info}]}
   ]}
 ]}.
+
+
+* TODO REDIS SETUP :macosx:
+If you prefer to start a redis server manually, rather than using 'port load', then use this command:
+
+    redis-server /opt/local/etc/redis.conf

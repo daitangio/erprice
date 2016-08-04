@@ -32,15 +32,20 @@ s() ->
     %% application:start(gen_smtp),
     %%% Go
     application:start(erprice),
-    observer:start(),
+    %% observer:start(),
     %% erprice_quote:start_link(),
     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
+    error_logger:info_msg("Erprice quote server: ~p",[GenServer]),
+    GenServer! {bizzarro},
+    %% Era 0.259 il 4 agosto 2016
+    erprice_quote:dropScan(GenServer,[{"BMPS","MI",0.24}]),
+    erprice_quote:dropPercentScan(GenServer,0.15, 
+                                  [{"BMPS","MI"}]),
     erprice_quote:dropPercentScan(GenServer,0.05, 
                                   [ 
                                     {"ORCL","NY"},
                                     {"SGR","MI"},
-                                    {"TRN","MI"},
-                                    {"BMPS","MI"},
+                                    {"TRN","MI"},                            
                                     {"ENEL","MI"}, 
                                     {"AAPL","NY"},
                                     {"RHT","NY"},

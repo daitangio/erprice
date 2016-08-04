@@ -24,7 +24,7 @@
 %%% BASIC API
 %% @doc Spawn a child which will notify the price drop to the Gen Server
 watch(GenServer, Company, Market,lessthen,Quote)->
-    {spawned, NewPid}=gen_server:call(GenServer,{Company, Market,lessthen,Quote}),
+    {spawned, NewPid}=gen_server:call(GenServer,{start_tracker,Company, Market,lessthen,Quote}),
     NewPid.
 
 %% i.e. dropPercentScan(Pid,0.1, [ {"BMPS","MI"}])
@@ -83,14 +83,20 @@ init(_WhateverYouLike) ->
     State=#{ monitorCount => 0 },
     {ok,State}.
 
-handle_call({Company, Market,lessthen,Quote},_From, State) ->    
+handle_call({start_tracker, Company, Market,lessthen,Quote},_From, State) ->    
     NewPid=spawn_monitor(?MODULE,watchDrop,[Company,Market,Quote,self()]),
     %% TODO Store pid infos...    
     #{ monitorCount := CurrentCount } = State,
     NewCount = CurrentCount+1,
     UpdatedState = State#{ monitorCount := NewCount },
-    NewState=maps:put(Company,NewPid,UpdatedState),
-    error_logger:info_msg("Spawned sub-process for ~p drop Current Count: ~p NewState ~p ",[Company,NewCount,NewState]),
+    %% La chiave non può essere la company senno' si ha  un solo monitor per ticker
+    NewState=maps:put(NewPid,#{
+                        pid => NewPid,
+                        ticker => string:concat(string:concat(Company,"."),Market),
+                        quote => Quote,
+                        logic => lessthen
+                       },UpdatedState),
+    error_logger:info_msg("Spawned sub-process for ~p drop Current Count: ~p ~nNewState ~p ",[Company,NewCount,NewState]),
     {reply,{spawned,NewPid}, NewState}.
 
 
@@ -115,12 +121,18 @@ handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
 handle_info(UnknownMessage,State) ->
     %%error_logger:error_msg("~n UNKNOWN MESSAGE: ~p",[UnknownMessage]),
     %% Try magic match:
-    {'DOWN',_REF,process,Pid,normal} = UnknownMessage,
-    #{ monitorCount := CurrentCount } = State,
-    DecCount = CurrentCount-1,
-    NewState = State#{ monitorCount := DecCount },
-    error_logger:info_msg("Aah: Child just shutdown: ~p New State: ~p ~n  ",[Pid, NewState]),
-    {noreply, NewState}.
+    case UnknownMessage of
+        {'DOWN',_REF,process,Pid,normal}->
+            #{ monitorCount := CurrentCount } = State,
+            DecCount = CurrentCount-1,
+            NewState = State#{ monitorCount := DecCount },
+            error_logger:info_msg("Aah: Child just shutdown: ~p New State: ~p ~n  ",[Pid, NewState]),
+            {noreply, NewState};
+        _ ->
+            error_logger:info_msg("Unknown message: ~p",[UnknownMessage]),
+            {noreply,State}
+    end.
+    
 
 terminate(Reason,State)->
     error_logger:error_msg("~n Terminate Abnormal request. Reason:~p Status: ~p",[Reason,State]),
@@ -138,8 +150,10 @@ getQuote(Company,Market)->
         case Market of
             ""    -> getYahooPrice(Company) ; %% shortcut 
             "NY"  -> getYahooPrice(Company) ;
-            _Other -> get24price(string:concat(string:concat(Company,"."),Market))                        
+            _Other -> getYahooPrice(string:concat(string:concat(Company,"."),Market))           
+                      %% get24price(string:concat(string:concat(Company,"."),Market))                        
         end,
+    error_logger:info_msg("Q! ~p  ~p",[Company,CurrentQuote]),
     CurrentQuote.
 
 
@@ -161,7 +175,7 @@ extract24_quote(String)->
 %%   {erprice_quote,watchDrop,4,
 %%                  [{file,"c:/giorgi/code/erprice/src/erprice_quote.erl"},
 %%                   {line,54}]}]}
-
+    
     [ Az ] = Match,
     Quote=list_to_float(bitstring_to_list(Az)),
     Quote.
@@ -176,6 +190,7 @@ get24price(Ticker) ->
     %%error_logger:info_msg("Calling ~p",[CallUrl]),
     {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} =
         httpc:request(get, {CallUrl, []}, [], []),
+    %%error_logger:info_msg("Bodyz: ~p", [Body]),
     FloatQuote=extract24_quote(Body),
     FloatQuote.
 
@@ -183,8 +198,15 @@ getYahooPrice(Ticker) ->
     %% nab= name, ask, bid.
     CallUrl =string:concat("http://download.finance.yahoo.com/d/quotes.csv?f=a&s=",Ticker),
     %%error_logger:info_msg("Calling ~p",[CallUrl]),
-    {ok, {{_Version, 200, _ReasonPhrase}, _Headers, Body}} =
-        httpc:request(get, {CallUrl, []}, [], []),
-    { Quote, _Rest} =string:to_float(Body),
-    Quote.
+    %% {error,{failed_connect,[
+    case httpc:request(get, {CallUrl, []}, [], []) of
+        {error, Reason}  ->
+            error_logger:info_msg("TickerError: ~p ~p Retring in 10s",[Ticker,Reason]),
+            timer:sleep(10000),
+            getYahooPrice(Ticker);
+        {ok, Result}->
+            {{_Version, 200, _ReasonPhrase}, _Headers, Body} = Result,
+            { Quote, _Rest} =string:to_float(Body),
+            Quote
+    end.
     
