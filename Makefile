@@ -1,8 +1,8 @@
 PROJECT = erprice
-PROJECT_DESCRIPTION = New project
+PROJECT_DESCRIPTION = The experimental diabolik price strategist
 PROJECT_VERSION = 0.0.1
 
-
+# Under macosx /usr/local/lib/erlang/bin/erl is OTP19
 # Dependency tracking: removed cowboy and lager
 DEPS= eredis gen_smtp
 

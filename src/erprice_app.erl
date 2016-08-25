@@ -19,39 +19,19 @@ start(_Type, _Args) ->
     erprice_sup:start_link().
 
 %% @doc convenience method to start basic services
-s() ->    
-    %% SSL needed by gen_smtp   
+s() ->
     application:start(inets),
+    httpc:set_options([ 
+                        { max_sessions, 5 } %% Maximum number of persistent connections to a host. Default is 2.
+                      ]),
     application:start(eredis),    
-    application:start(sasl),    
-    %% Resee: tree for gen_smtp
-    %% application:start(crypto),
-    %% application:start(asn1),   
-    %% application:start(public_key),
-    %% application:start(ssl),
-    %% application:start(gen_smtp),
-    %%% Go
+    application:start(sasl),
     application:start(erprice),
-    %% observer:start(),
-    %% erprice_quote:start_link(),
+    %% Boot also the erprice_ge
     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),
     error_logger:info_msg("Erprice quote server: ~p",[GenServer]),
-    GenServer! {bizzarro},
-    %% Era 0.259 il 4 agosto 2016
-    erprice_quote:dropScan(GenServer,[{"BMPS","MI",0.24}]),
-    erprice_quote:dropPercentScan(GenServer,0.15, 
-                                  [{"BMPS","MI"}]),
-    erprice_quote:dropPercentScan(GenServer,0.05, 
-                                  [ 
-                                    {"ORCL","NY"},
-                                    {"SGR","MI"},
-                                    {"TRN","MI"},                            
-                                    {"ENEL","MI"}, 
-                                    {"AAPL","NY"},
-                                    {"RHT","NY"},
-                                    {"ADBE","NY"}, %% Adobe, Nasdaq
-                                    {"AMZN","NY"}
-                                  ]),
+    %% Boot strategist guys
+    gen_event:notify(erprice_ge, {kickoff, strategist, GenServer}),
     GenServer.
 
 

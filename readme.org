@@ -39,7 +39,14 @@ kerl_deactivate
 ]}.
 
 
+* TODO DOCUMENTAZIONE ERLANG.MK
+Make fallito:
+
+sudo port install dblatex xsltproc
+make -f erlang.mk  docs
 * TODO REDIS SETUP :macosx:
 If you prefer to start a redis server manually, rather than using 'port load', then use this command:
 
     redis-server /opt/local/etc/redis.conf
+
+

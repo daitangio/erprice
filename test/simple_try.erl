@@ -153,6 +153,14 @@ simple_yahooApi_disab()->
     ok.
 
 
+%%% Porfolio api
+portfolio_buy1_test()->
+    P=portfolio:new(100000),
+    P1=portfolio:buy(P,"ORCL",1000,41.12),
+    P2=portfolio:buy(P1,"ORCL",1000,41.12),
+    error_logger:info_msg("Porfolio ~p~n", [ P2 ]),  
+    P2.
+
 
 -endif.
 

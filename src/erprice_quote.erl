@@ -28,6 +28,7 @@ watch(GenServer, Company, Market,lessthen,Quote)->
     NewPid.
 
 %% i.e. dropPercentScan(Pid,0.1, [ {"BMPS","MI"}])
+%% It needs a quote to start. It is very slow because it a sequential step. Consider parallel spawn.
 dropPercentScan(GenServer, Percent, [ Tick | Rest] ) ->
     { Company, Market } = Tick,
     %% Extract the quote
@@ -56,7 +57,9 @@ watchDrop(Company,Market,Quote,GenServer)->
     %% error_logger:info_msg("Comparing ~p ~p < ~p", [Company,CurrentQuote,Quote]),
     if CurrentQuote < Quote  -> 
             error_logger:info_msg("Trigger Comparing ~p ~p < ~p", [Company,CurrentQuote,Quote]),
-            gen_server:cast(GenServer, {self(),drop,Company,CurrentQuote});           
+            %% Notify drop
+            gen_event:notify(erprice_ge, {drop, self(), string:concat(string:concat(Company,"."),Market),CurrentQuote});
+            %%gen_server:cast(GenServer, {self(),drop,Company,CurrentQuote});           
        true -> %% error_logger:info_msg(" Retrying... "),
             %% Sleep and reschedule.
             %% To avoid detection, we add also some random time inside it.
@@ -72,7 +75,10 @@ watchDrop(Company,Market,Quote,GenServer)->
     
 
 %%% GEN SERVER Implementation
-
+%%% Spawn sub-monitor children
+%%% Children notify price drop/rise to gen_event subsystem
+%%% When a Children die, the gen server get a notification and update its state
+%%% It can also 
 
 
 start_link()->
@@ -80,6 +86,10 @@ start_link()->
     GenServer.
 
 init(_WhateverYouLike) ->
+    {ok, _}=gen_event:start({local,erprice_ge}),
+    %% The buyer
+    gen_event:add_handler(erprice_ge,erbuyer,[]),
+    %% TODO: Add a  watcher guy and kick it in the game
     State=#{ monitorCount => 0 },
     {ok,State}.
 
@@ -100,33 +110,33 @@ handle_call({start_tracker, Company, Market,lessthen,Quote},_From, State) ->
     {reply,{spawned,NewPid}, NewState}.
 
 
-handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
-    error_logger:info_msg("~n NOTIFY Drop on ~p ~p",[Company,CurrentQuote]),
-    %% TODO: implement some notification action
-    %% Also if the trigger must be rescheduled provide additional actions
+%% Unused right now
+handle_cast(_Unknown,State)->
     {noreply,State}.
+%% handle_cast({_WorkerPid, drop, Company,CurrentQuote},State)->
+%%     error_logger:info_msg("~n NOTIFY Drop on ~p ~p",[Company,CurrentQuote]),
+%%     %% TODO: implement some notification action
+%%     %% Also if the trigger must be rescheduled provide additional actions
+%%     {noreply,State}.
 
-%% handle_info({'EXIT', _Pid, _Reason}, State) ->
-%%     %% ..code to handle exits here..
-%%     {noreply, State}.
-
-%% Child monitored process will send a DOWN message as normal state
-%%           {'DOWN',#Ref<0.0.4.149>,process,<0.83.0>,normal}
-%% handle_info( {'DOWN',_Ref,_ProcessTag,Pid,_StatusHopeNormal},State)->
-%%     #{ monitorCount := CurrentCount } = State,
-%%     DecCount = CurrentCount-1,
-%%     NewState = State#{ monitorCount := DecCount },
-%%     error_logger:error_msg("~n  Just died: ~p Live Monitor so far:  ~p New State: ~p ~n",[Pid,DecCount,NewState]),
-%%     {noreplay,State};
 handle_info(UnknownMessage,State) ->
     %%error_logger:error_msg("~n UNKNOWN MESSAGE: ~p",[UnknownMessage]),
     %% Try magic match:
     case UnknownMessage of
-        {'DOWN',_REF,process,Pid,normal}->
+        {'DOWN',Ref,process,Pid,normal}->
             #{ monitorCount := CurrentCount } = State,
             DecCount = CurrentCount-1,
-            NewState = State#{ monitorCount := DecCount },
+            UpdatedState = State#{ monitorCount := DecCount },
+            NewState= maps:without([{Pid,Ref}],UpdatedState),
             error_logger:info_msg("Aah: Child just shutdown: ~p New State: ~p ~n  ",[Pid, NewState]),
+            
+            if
+                DecCount == 0 ->
+                    error_logger:info_msg("Notify zero watcher..."),
+                    gen_event:notify(erprice_ge, 
+                                     {zero_watcher_reached, self()});
+                true -> nothing2do
+            end,
             {noreply, NewState};
         _ ->
             error_logger:info_msg("Unknown message: ~p",[UnknownMessage]),
@@ -150,8 +160,9 @@ getQuote(Company,Market)->
         case Market of
             ""    -> getYahooPrice(Company) ; %% shortcut 
             "NY"  -> getYahooPrice(Company) ;
-            _Other -> getYahooPrice(string:concat(string:concat(Company,"."),Market))           
-                      %% get24price(string:concat(string:concat(Company,"."),Market))                        
+            _Other ->
+                getYahooPrice(string:concat(string:concat(Company,"."),Market))           
+                %% get24price(string:concat(string:concat(Company,"."),Market))                        
         end,
     error_logger:info_msg("Q! ~p  ~p",[Company,CurrentQuote]),
     CurrentQuote.
@@ -203,7 +214,9 @@ getYahooPrice(Ticker) ->
         {error, Reason}  ->
             error_logger:info_msg("TickerError: ~p ~p Retring in 10s",[Ticker,Reason]),
             timer:sleep(10000),
-            getYahooPrice(Ticker);
+            getYahooPrice(Ticker)
+            %%-1
+                ;
         {ok, Result}->
             {{_Version, 200, _ReasonPhrase}, _Headers, Body} = Result,
             { Quote, _Rest} =string:to_float(Body),
