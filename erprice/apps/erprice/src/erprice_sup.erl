@@ -26,10 +26,11 @@ start_link() ->
 %%                  type => worker(),       % optional
 %%                  modules => modules()}   % optional
 init([]) ->
-    SupFlags = #{strategy => one_for_all,
+    SupFlags = #{strategy => one_for_one,
                  intensity => 0,
                  period => 1},
     ChildSpecs = [],
+    %% Orig spec 	{ok, {{one_for_one, 1, 5}, []]}}.
     {ok, {SupFlags, ChildSpecs}}.
 
 %% internal functions

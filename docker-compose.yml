@@ -1,7 +1,6 @@
 version: '2'
 services:
   price_diablo:
-    #image: erlang:24
-    image: erlang:18
+    image: erlang:24    
     volumes:
       - $PWD:/usr/src/myapp

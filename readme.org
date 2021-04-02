@@ -1,3 +1,14 @@
+* New rebar install
+See http://rebar3.org/docs/getting-started/
+
+#+BEGIN_SRC 
+./rebar3 local install
+cd erprice
+rebar3 compile
+rebar3 shell
+rebar3 eunit
+#+END_SRC
+----
 
 * Simple drop startegy
 #+BEGIN_SRC erlang

@@ -1,7 +1,7 @@
 {application, erprice,
- [{description, "An OTP application"},
+ [{description, "The fantastic trade price monitor"},
   {vsn, "0.1.0"},
-  {registered, []},
+  {registered, [erprice_sup]},
   {mod, {erprice_app, []}},
   {applications,
    [kernel,
@@ -11,7 +11,7 @@
     eredis
    ]},
   {env,[]},
-  {modules, []},
+  {modules, ['erprice_quote','erprice_app','erprice_sup']},
 
   {licenses, ["Apache 2.0"]},
   {links, []}

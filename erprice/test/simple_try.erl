@@ -29,6 +29,13 @@ stupid_test()->
 log_test() ->
     error_logger:info_msg("Simple SASL Info log ~p~n", [ yeppa ]).  
 
+simple_url_request_test()->    
+    {ok, {{Version, 200, _ReasonPhrase}, Headers, _Body}} =
+        httpc:request(get, {"http://gioorgi.com", []}, [], []),
+    ?debugVal(Version),    
+    ?debugVal(Headers),
+    error_logger:info_msg("Simple url request").
+
 map_learn_test() ->
     S= #{ count => 0},
     ?debugVal(S),
@@ -84,11 +91,7 @@ integration_fast_test()->
 %%     lager:info("Testing info"),
 %%     ?assertEqual(1,1).
 
-simple_url_request_disab()->    
-    {ok, {{Version, 200, _ReasonPhrase}, Headers, _Body}} =
-        httpc:request(get, {"http://gioorgi.com", []}, [], []),
-    ?debugVal(Version),
-    ?debugVal(Headers).
+
 
 %% Es di url di quotazione
 %% http://www.milanofinanza.it/quotazioni/dettaglio/snam-2ae0363
