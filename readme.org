@@ -7,6 +7,7 @@ cd erprice
 rebar3 compile
 rebar3 shell
 rebar3 eunit
+rebar3 edoc
 #+END_SRC
 ----
 

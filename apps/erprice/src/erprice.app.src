@@ -13,6 +13,6 @@
   {env,[]},
   {modules, ['erprice_quote','erprice_app','erprice_sup']},
 
-  {licenses, ["Apache 2.0"]},
+  {licenses, ["GPL v2"]},
   {links, []}
  ]}.

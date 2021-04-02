@@ -9,14 +9,14 @@
 %% For eunit:
 -export([extract24_quote/1,get24price/1]).
 
-%% @doc Gen server master watcher. 
+%% Gen server master watcher. 
 %% TODO Custom error log http://erlang.org/documentation/doc-4.9.1/doc/design_principles/error_logging.html
 %% 
 
-%% @doc how much parallel connections for getting quote?
+%% how much parallel connections for getting quote?
 %% -define(MAX_CONNECTIONS,2).
 
-%% @doc Mimimal delay between two requests
+%% Mimimal delay between two requests
 -define(MIN_COLD_DOWN_SECONDS,120).
 %% Random delay range
 -define(COLD_DOWN_RANDOM_SECONDS,60).
