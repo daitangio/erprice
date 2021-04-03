@@ -29,9 +29,9 @@ stupid_test()->
 log_test() ->
     error_logger:info_msg("Simple SASL Info log ~p~n", [ yeppa ]).  
 
-simple_url_request_test()->    
+simple_url_request_test_disab()->    
     {ok, {{Version, 200, _ReasonPhrase}, Headers, _Body}} =
-        httpc:request(get, {"http://gioorgi.com", []}, [], []),
+        httpc:request(get, {"https://gioorgi.com", []}, [], []),
     ?debugVal(Version),    
     ?debugVal(Headers),
     error_logger:info_msg("Simple url request").
@@ -51,7 +51,7 @@ integration_fast_test()->
     erprice_quote:dropPercentScan(GenServer,-0.05, 
                                   [  {"AAPL","NY"},
                                      {"ORCL","NY"}]),
-    timer:sleep(900).
+    timer:sleep(2900).
       
 %% simple_watch() ->
 %%     {ok, GenServer}=gen_server:start_link(erprice_quote,[],[]),

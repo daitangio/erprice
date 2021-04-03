@@ -1,6 +1,10 @@
 version: '2'
 services:
   price_diablo:
-    image: erlang:24    
+    image: erprice:0.1.0
+    build:
+      context: .
     volumes:
       - $PWD:/usr/src/myapp
+    ports:
+      - "46011:46011"

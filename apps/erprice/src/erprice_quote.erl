@@ -205,11 +205,9 @@ get24price(Ticker) ->
     FloatQuote=extract24_quote(Body),
     FloatQuote.
 
-getYahooPrice(Ticker) ->
-    %% nab= name, ask, bid.
-    CallUrl =string:concat("http://download.finance.yahoo.com/d/quotes.csv?f=a&s=",Ticker),
-    %%error_logger:info_msg("Calling ~p",[CallUrl]),
-    %% {error,{failed_connect,[
+getYahooPrice(Ticker) ->   
+    CallUrl= unicode:characters_to_list(["https://query1.finance.yahoo.com/v7/finance/download/",Ticker,"?interval=1d&events=history&includeAdjustedClose=true"],utf8),
+    %%error_logger:info_msg("Calling ~p",[CallUrl]),    
     case httpc:request(get, {CallUrl, []}, [], []) of
         {error, Reason}  ->
             error_logger:info_msg("TickerError: ~p ~p Retring in 10s",[Ticker,Reason]),
@@ -219,7 +217,11 @@ getYahooPrice(Ticker) ->
                 ;
         {ok, Result}->
             {{_Version, 200, _ReasonPhrase}, _Headers, Body} = Result,
-            { Quote, _Rest} =string:to_float(Body),
+            %% Take the second line
+            QuoteLine=lists:nth(2,string:split(Body,"\n",all)),
+            QuoteValueString=lists:nth(5,string:split(QuoteLine,",",all)),
+            Quote=list_to_float(QuoteValueString),
+            %%error_logger:info_msg("Quote ~p",[QuoteValueString]),
             Quote
     end.
     
