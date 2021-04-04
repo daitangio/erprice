@@ -1,4 +1,4 @@
-[{<<"eredis">>,
-  {git,"git://github.com/wooga/eredis.git",
-       {ref,"9ad91f149310a7d002cb966f62b7e2c3330abb04"}},
+[{<<"sqlite3">>,
+  {git,"git://github.com/processone/erlang-sqlite3.git",
+       {ref,"ca499cf5760ad7e0e7adeb99ec6893be1bf8712b"}},
   0}].

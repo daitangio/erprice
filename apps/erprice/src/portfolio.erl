@@ -1,6 +1,7 @@
 -module(portfolio).
--compile(export_all).
+
 -compile(native).
+-export([new/1,buy/4]).
 
 %% @doc Basic portfolio management
 

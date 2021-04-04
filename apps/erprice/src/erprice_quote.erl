@@ -1,11 +1,13 @@
 -module(erprice_quote).
 %% Native ask for hipe? Win does not support it
 %% -compile([ native,export_all]).
--compile([ {hipe, [to_llvm]}, export_all]).
+-compile([native, {hipe, [to_llvm]}]).
 -behaviour(gen_server).
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, code_change/3,terminate/2,handle_info/2]).
-
+-export([start_link/0,watch/5, dropPercentScan/3, 
+    dropScan/2,watchDrop/4 
+]).
 %% For eunit:
 -export([extract24_quote/1,get24price/1]).
 

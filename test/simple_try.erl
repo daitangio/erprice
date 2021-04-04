@@ -1,20 +1,17 @@
 -module(simple_try).
 %% -compile([{parse_transform, lager_transform},export_all]).
--compile([export_all]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
  
 %% TEST CODE HERE
 
--import(eredis, [create_multibulk/1]).
 
 %% Must be first to  activate all the support servers
 start_test()->
     %% manually start some application for unit testing
     %% I think it is wrong, but works...
-    application:start(inets),
-    application:start(eredis),
+    application:start(inets),    
     %% Run sasl for last...
     application:start(sasl),
     ok.

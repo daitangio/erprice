@@ -23,8 +23,7 @@ s() ->
     application:start(inets),
     httpc:set_options([ 
                         { max_sessions, 5 } %% Maximum number of persistent connections to a host. Default is 2.
-                      ]),
-    application:start(eredis),    
+                      ]),       
     application:start(sasl),
     application:start(erprice),
     %% Boot also the erprice_ge

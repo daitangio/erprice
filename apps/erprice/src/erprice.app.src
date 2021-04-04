@@ -7,8 +7,7 @@
    [kernel,
     stdlib,
     sasl,
-    inets,
-    eredis
+    inets    
    ]},
   {env,[]},
   {modules, ['erprice_quote','erprice_app','erprice_sup']},
